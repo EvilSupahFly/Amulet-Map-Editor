@@ -42,7 +42,7 @@ try:
     import wx
     import platformdirs
 
-    if sys.platform == "linux" and wx.VERSION >= (4, 1, 1):
+    if sys.platform == "linux" and wx.VERSION >= (4, 2, 2): # Use updated wxPython
         # bug 247
         os.environ["PYOPENGL_PLATFORM"] = "egl"
         wx.PyApp.IsDisplayAvailable = lambda _: True # Resolves issue with Flatpak version not loading on Wayland
