@@ -16,7 +16,8 @@ def _on_error(e):
     else:
         err = "\n".join(
             [traceback.format_exc()]
-            + (["Failed to import requirements. Check that you extracted correctly"] if isinstance(e, ImportError) else []) # Error handling now a little cleaner
+            + ["Failed to import requirements. Check that you extracted correctly."]
+            * isinstance(e, ImportError)
             + [str(e)]
         )
         print(err)
@@ -42,7 +43,7 @@ try:
     import wx
     import platformdirs
 
-    if sys.platform == "linux" and wx.VERSION >= (4, 2, 2): # Use updated wxPython
+    if sys.platform == "linux" and wx.VERSION >= (4, 2, 2):
         # bug 247
         os.environ["PYOPENGL_PLATFORM"] = "egl"
         wx.PyApp.IsDisplayAvailable = lambda _: True # Resolves issue with Flatpak version not loading on Wayland
