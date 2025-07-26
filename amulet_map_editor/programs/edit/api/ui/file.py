@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, Optional
-from math import floor, log10
 import wx
 
 from amulet_map_editor.programs.edit.api.edit_canvas_container import (
@@ -25,21 +24,14 @@ if TYPE_CHECKING:
     from amulet_map_editor.programs.edit.api.canvas import EditCanvas
 
 
-def _format_float(num: float) -> str:
-    if num < 100:
-        return f"{num:.0{max(0, 2 - floor(log10(num)))}f}".rstrip("0").rstrip(".")
-    else:
-        return f"{num:.0f}"
-
-
 class FilePanel(wx.BoxSizer, EditCanvasContainer):
-    def __init__(self, canvas: "EditCanvas"):
+    def __init__(self, canvas: "EditCanvas", wx_parent):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         EditCanvasContainer.__init__(self, canvas)
 
         level = self.canvas.world
         self._version_text = wx.StaticText(
-            canvas,
+            wx_parent,
             label=f"{level.level_wrapper.platform}, {level.level_wrapper.version}",
         )
         self._version_text.SetToolTip(
@@ -47,7 +39,7 @@ class FilePanel(wx.BoxSizer, EditCanvasContainer):
         )
         self.Add(self._version_text, 0)
         self.AddStretchSpacer(1)
-        self._projection_button = wx.Button(canvas, label="3D")
+        self._projection_button = wx.Button(wx_parent, label="3D")
         self._projection_button.SetToolTip(
             lang.get("program_3d_edit.file_ui.projection_tooltip")
         )
@@ -56,7 +48,7 @@ class FilePanel(wx.BoxSizer, EditCanvasContainer):
             self._projection_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT | wx.CENTER, 5
         )
         self._location_button = wx.Button(
-            canvas, label=", ".join([f"{s:.2f}" for s in self.canvas.camera.location])
+            wx_parent, label=", ".join([f"{s:.2f}" for s in self.canvas.camera.location])
         )
         self._location_button.SetToolTip(
             lang.get("program_3d_edit.file_ui.location_tooltip")
@@ -66,20 +58,20 @@ class FilePanel(wx.BoxSizer, EditCanvasContainer):
 
         def set_speed(evt):
             dialog = SpeedSelectDialog(
-                canvas, self.canvas.camera.move_speed * 1000 / 33
+                wx_parent, self.canvas.camera.move_speed * 1000 / 33
             )
             if dialog.ShowModal() == wx.ID_OK:
                 self.canvas.camera.move_speed = dialog.speed * 33 / 1000
 
         self._speed_button = wx.Button(
-            canvas,
-            label=f"{_format_float(self.canvas.camera.move_speed * 1000 / 33)} {lang.get('program_3d_edit.file_ui.speed_blocks_per_second')}",
+            wx_parent,
+            label=f"{self.canvas.camera.move_speed*1000/33:.4g}{lang.get('program_3d_edit.file_ui.speed_blocks_per_second')}",
         )
         self._speed_button.SetToolTip(lang.get("program_3d_edit.file_ui.speed_tooltip"))
         self._speed_button.Bind(wx.EVT_BUTTON, set_speed)
         self.Add(self._speed_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT | wx.CENTER, 5)
 
-        self._dim_options = SimpleChoiceAny(canvas)
+        self._dim_options = SimpleChoiceAny(wx_parent)
         self._dim_options.SetToolTip(lang.get("program_3d_edit.file_ui.dim_tooltip"))
         self._dim_options.SetItems(level.level_wrapper.dimensions)
         self._dim_options.SetValue(level.level_wrapper.dimensions[0])
@@ -88,7 +80,7 @@ class FilePanel(wx.BoxSizer, EditCanvasContainer):
         self.Add(self._dim_options, 0, wx.TOP | wx.BOTTOM | wx.RIGHT | wx.CENTER, 5)
 
         def create_button(text, operation):
-            button = wx.Button(canvas, label=text)
+            button = wx.Button(wx_parent, label=text)
             button.Bind(wx.EVT_BUTTON, operation)
             self.Add(button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
             return button
@@ -114,7 +106,7 @@ class FilePanel(wx.BoxSizer, EditCanvasContainer):
         self._save_button.SetToolTip(lang.get("program_3d_edit.file_ui.save_tooltip"))
 
         close_button = wx.BitmapButton(
-            canvas, bitmap=image.icon.tablericons.square_x.bitmap(20, 20)
+            wx_parent, bitmap=image.icon.tablericons.square_x.bitmap(20, 20)
         )
         close_button.SetToolTip(lang.get("program_3d_edit.file_ui.close_tooltip"))
         close_button.Bind(
@@ -187,7 +179,7 @@ class FilePanel(wx.BoxSizer, EditCanvasContainer):
         evt.Skip()
 
     def _on_speed_change(self, evt):
-        label = f"{_format_float(self.canvas.camera.move_speed * 1000 / 33)} {lang.get('program_3d_edit.file_ui.speed_blocks_per_second')}"
+        label = f"{self.canvas.camera.move_speed*1000/33:.4g}{lang.get('program_3d_edit.file_ui.speed_blocks_per_second')}"
         old_label = self._speed_button.GetLabel()
         self._speed_button.SetLabel(label)
         if len(label) != len(old_label):
