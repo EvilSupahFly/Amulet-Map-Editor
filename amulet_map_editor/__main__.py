@@ -42,6 +42,7 @@ try:
     import time
     import wx
     import platformdirs
+    from datetime import datetime
 
     if sys.platform == "linux" and wx.VERSION >= (4, 1, 1):
         # bug 247
@@ -65,8 +66,9 @@ def _init_log():
     log = logging.getLogger()
     log.setLevel(logging.DEBUG if "amulet-debug" in sys.argv else logging.INFO)
 
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file_handler = logging.FileHandler(
-        os.path.join(logs_path, f"amulet_{os.getpid()}.log"), "w", encoding="utf-8"
+        os.path.join(logs_path, f"amulet_{timestamp}.log"), "w", encoding="utf-8"
     )
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

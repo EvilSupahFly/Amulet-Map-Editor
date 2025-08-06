@@ -28,6 +28,7 @@ import math
 from typing import Dict, Tuple, List, Optional, Generator
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 DESCRIPTION = """Packs many smaller images into one larger image, a Texture
 Atlas. A companion file (.map), is created that defines where each texture is
@@ -322,9 +323,13 @@ def create_atlas_iter(texture_tuple: Tuple[str, ...]) -> Generator[
     texture_atlas = atlas.generate("RGBA")
 
     texture_bounds = atlas.to_dict()
+    # Debug Added for Flatpak Texture Issue
+    log.debug(f"[ATLAS DEBUG] Final image size: {texture_atlas.size}, mode: {texture_atlas.mode}")
+
     texture_bounds = {
         texture_path: texture_bounds[texture_path] for texture_path in texture_tuple
     }
+    log.debug(f"[ATLAS DEBUG] Texture keys in atlas: {list(texture_bounds.keys())[:10]} ...")
 
     log.info("Finished creating texture atlas")
     return texture_atlas, texture_bounds

@@ -157,6 +157,11 @@ class OpenGLResourcePack:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
 
         glBindTexture(GL_TEXTURE_2D, gl_texture)
+        log.debug(
+            f"[GL UPLOAD] Uploading texture atlas ID {gl_texture} "
+            f"with size=({self._image_width}x{self._image_height}), total_bytes={self._image.nbytes}, dtype={self._image.dtype}"
+        )
+
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
