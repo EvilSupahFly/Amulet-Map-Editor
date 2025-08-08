@@ -31,7 +31,7 @@ from amulet.api.block import Block
 from amulet_map_editor.api.opengl import textureatlas
 
 log = logging.getLogger(__name__)
-
+log.setLevel(logging.DEBUG)
 
 class OpenGLResourcePack:
     """This class will take a minecraft_model_reader resource pack and
@@ -124,7 +124,13 @@ class OpenGLResourcePack:
                         "The resource packs have changed since last merging."
                     )
                 atlas = Image.open(img_path)
+                log.debug(f"[ATLAS LOAD] Loaded atlas from cache: {img_path}")
+
             except:
+                for key, path in self._resource_pack.textures.items():
+                    if key[1].startswith("block/") and any(x in key[1] for x in ("water", "lava", "missing_no")):
+                        log.debug(f"[ATLAS INPUT] Texture passed to atlas: {key} → {path}")
+                log.debug(f"[ATLAS SUMMARY] Total input textures: {len(self._resource_pack.textures)}")
                 atlas_iter = textureatlas.create_atlas_iter(
                     self._resource_pack.textures
                 )
@@ -138,8 +144,13 @@ class OpenGLResourcePack:
                     ) = e.value
                     os.makedirs(cache_dir, exist_ok=True)
                     atlas.save(img_path)
+                    log.debug(f"[ATLAS SAVE] Atlas image saved to: {img_path}")
                     with open(bounds_path, "w") as f:
                         json.dump((mod_time, bounds), f)
+
+                    for key in bounds.keys():
+                        if key.startswith("block/") and any(x in key for x in ("water", "lava", "missing_no")):
+                            log.debug(f"[ATLAS BOUND] Texture retained in atlas: {key} → bounds: {bounds[key]}")
 
             self._image_width, self._image_height = atlas.size
             self._image = numpy.array(atlas, numpy.uint8).ravel()

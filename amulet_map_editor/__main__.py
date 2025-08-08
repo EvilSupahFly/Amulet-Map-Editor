@@ -29,8 +29,10 @@ def _on_error(e):
         input("Press ENTER to continue.")
         sys.exit(1)
 
-
 try:
+    import amulet_map_editor.config as _config
+    _config.snapshot = "snapshot" in sys.argv # Added argument for using snapshots
+
     import sys
 
     if sys.version_info[:2] < (3, 7):
@@ -50,7 +52,6 @@ try:
 except Exception as e_:
     _on_error(e_)
 
-
 def _init_log():
     logs_path = os.environ["LOG_DIR"]
     # set up handlers
@@ -62,7 +63,7 @@ def _init_log():
             and os.path.getmtime(path) < time.time() - 3600 * 24 * 7
         ):
             os.remove(path)
-
+    
     log = logging.getLogger()
     log.setLevel(logging.DEBUG if "amulet-debug" in sys.argv else logging.INFO)
 
@@ -78,7 +79,6 @@ def _init_log():
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
     log.addHandler(console_handler)
-
 
 def main():
     try:
@@ -113,7 +113,6 @@ def main():
             input("Press ENTER to continue.")
 
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
