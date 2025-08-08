@@ -30,10 +30,10 @@ def _on_error(e):
         sys.exit(1)
 
 try:
+    import sys
+
     import amulet_map_editor.config as _config
     _config.snapshot = "snapshot" in sys.argv # Added argument for using snapshots
-
-    import sys
 
     if sys.version_info[:2] < (3, 7):
         raise Exception("Must be using Python 3.7+")
