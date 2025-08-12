@@ -58,28 +58,31 @@ class OpenGLResourcePack:
         self._image_height: int = 0
 
         self._gl_textures: Dict[str, int] = {}
+        log.debug("__init__() completed")
 
     def get_atlas_id(self, context_id: str) -> int:
         """Get the opengl texture id of the atlas for a given context."""
         if context_id not in self._gl_textures:
             if self._image is None:
-                raise Exception(
-                    "OpenGLResourcePack.setup() needs to be run before accessing a texture."
-                )
+                raise Exception("OpenGLResourcePack.setup() needs to be run before accessing a texture.")
             self._setup_texture(context_id)
+        #log.debug(f"get_atlas_id() completed: {self._gl_textures[context_id]}")
         return self._gl_textures[context_id]
 
     def get_texture_path(self, namespace: Optional[str], relative_path: str):
         """Get the absolute path of the image from the relative components.
         Useful for getting the id of textures for hard coded textures not connected to a resource pack.
         """
+        #log.debug(f"get_texture_path completed: {self._resource_pack.get_texture_path(namespace, relative_path)}")
         return self._resource_pack.get_texture_path(namespace, relative_path)
 
     def texture_bounds(self, texture_path: str) -> Tuple[float, float, float, float]:
         """Get the bounding box of a given texture path."""
         if texture_path in self._texture_bounds:
+            #log.debug(f"texture_path {texture_path} found in self._texture_bounds")
             return self._texture_bounds[texture_path]
         else:
+            #log.debug(f"texture_path {texture_path} not found in self._texture_bounds - using missing_no")
             return self._texture_bounds[self._resource_pack.missing_no]
 
     @property
@@ -89,19 +92,16 @@ class OpenGLResourcePack:
 
     def setup(self) -> Generator[float, None, None]:
         """Create and bind the atlas texture."""
+        log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:setup()] - Creating and binding atlat.")
         if self._image is None:
-            cache_id = struct.unpack(
-                "H",
-                hashlib.sha1(
-                    "".join(self._resource_pack.pack_paths).encode("utf-8")
-                ).digest()[:2],
-            )[0]
-
+            log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:setup()] self,image in None")
+            cache_id = struct.unpack("H",hashlib.sha1("".join(self._resource_pack.pack_paths).encode("utf-8")).digest()[:2],)[0]
+            log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:setup()] cache_id = {cache_id}")
             atlas: Image.Image
 
             if not self._resource_pack.pack_paths:
                 log.warning("There are no resource packs to load.")
-
+            
             mod_time = max(
                 (
                     os.stat(path).st_mtime
@@ -112,28 +112,32 @@ class OpenGLResourcePack:
                 ),
                 default=0,
             )
-
+            log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:setup()] - Path checks:")
             cache_dir = os.path.join(os.environ["CACHE_DIR"], "resource_packs", "atlas")
+            log.debug(f"[CACHE_DIR] = {cache_dir}")
             img_path = os.path.join(cache_dir, f"{cache_id}.png")
+            log.debug(f"[img_path] = {img_path}")
             bounds_path = os.path.join(cache_dir, f"{cache_id}.json")
+            log.debug(f"[bounds_path] = {bounds_path}")
+            log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:setup()] - Paths set")
             try:
                 with open(bounds_path) as f:
                     cache_mod_time, bounds = json.load(f)
                 if mod_time != cache_mod_time:
-                    raise Exception(
-                        "The resource packs have changed since last merging."
-                    )
+                    raise Exception("The resource packs have changed since last merging.")
                 atlas = Image.open(img_path)
-                log.debug(f"[ATLAS LOAD] Loaded atlas from cache: {img_path}")
+                #log.debug(f"[ATLAS LOAD] Loaded atlas from cache: {img_path}")
 
             except:
-                for key, path in self._resource_pack.textures.items():
-                    if key[1].startswith("block/") and any(x in key[1] for x in ("water", "lava", "missing_no")):
-                        log.debug(f"[ATLAS INPUT] Texture passed to atlas: {key} → {path}")
-                log.debug(f"[ATLAS SUMMARY] Total input textures: {len(self._resource_pack.textures)}")
-                atlas_iter = textureatlas.create_atlas_iter(
-                    self._resource_pack.textures
-                )
+                #for key, path in self._resource_pack._textures.items():
+                #    if key[1].startswith("block/") and any(x in key[1] for x in ("water", "lava", "missing_no")):
+                #        log.debug(f"[ATLAS INPUT] Texture passed to atlas: {key} → {path}")
+                # Water/lava presence check before atlas build
+                #watch_textures = ("water", "lava", "missing_no")
+                #for key, path in self._resource_pack._textures.items():
+                #    if key[1].startswith("block/") and any(x in key[1] for x in watch_textures):
+                #        log.debug(f"[ATLAS PRECHECK] {key} → {path} | exists={os.path.exists(path)}")
+                atlas_iter = textureatlas.create_atlas_iter(self._resource_pack.textures)
                 try:
                     while True:
                         yield next(atlas_iter)
@@ -144,13 +148,13 @@ class OpenGLResourcePack:
                     ) = e.value
                     os.makedirs(cache_dir, exist_ok=True)
                     atlas.save(img_path)
-                    log.debug(f"[ATLAS SAVE] Atlas image saved to: {img_path}")
+                    #log.debug(f"[ATLAS SAVE] Atlas image saved to: {img_path}")
                     with open(bounds_path, "w") as f:
                         json.dump((mod_time, bounds), f)
 
-                    for key in bounds.keys():
-                        if key.startswith("block/") and any(x in key for x in ("water", "lava", "missing_no")):
-                            log.debug(f"[ATLAS BOUND] Texture retained in atlas: {key} → bounds: {bounds[key]}")
+                    #for key in bounds.keys():
+                    #    if key.startswith("block/") and any(x in key for x in ("water", "lava", "missing_no")):
+                    #        log.debug(f"[ATLAS BOUND] Texture retained in atlas: {key} → bounds: {bounds[key]}")
 
             self._image_width, self._image_height = atlas.size
             self._image = numpy.array(atlas, numpy.uint8).ravel()
@@ -158,9 +162,7 @@ class OpenGLResourcePack:
 
     def _setup_texture(self, context_id: str):
         """Set up the texture for a given context"""
-        gl_texture = self._gl_textures[context_id] = glGenTextures(
-            1
-        )  # Create the texture location
+        gl_texture = self._gl_textures[context_id] = glGenTextures(1)  # Create the texture location
         glBindTexture(GL_TEXTURE_2D, gl_texture)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
@@ -168,10 +170,8 @@ class OpenGLResourcePack:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
 
         glBindTexture(GL_TEXTURE_2D, gl_texture)
-        log.debug(
-            f"[GL UPLOAD] Uploading texture atlas ID {gl_texture} "
-            f"with size=({self._image_width}x{self._image_height}), total_bytes={self._image.nbytes}, dtype={self._image.dtype}"
-        )
+        log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:_setup_texture()] - Creating gl_texture: {gl_texture} = {self._gl_textures[context_id]}")
+        log.debug(f"[GL UPLOAD] Uploading texture atlas ID {gl_texture} with size=({self._image_width}x{self._image_height}), total_bytes={self._image.nbytes}, dtype={self._image.dtype}")
 
         glTexImage2D(
             GL_TEXTURE_2D,
@@ -191,16 +191,15 @@ class OpenGLResourcePack:
         """Get the BlockMesh class for a given universal Block.
         The Block will be translated to the version format using the
         previously specified translator."""
+        log.debug(f"[amulet_map_editor/api/opengl/resource_pack/resource_pack.py:get_block_model()] - Getting the BlockMesh class for universal Block.")
         if universal_block not in self._block_models:
-            version_block = self._translator.block.from_universal(
-                universal_block.base_block
-            )[0]
+            version_block = self._translator.block.from_universal(universal_block.base_block)[0]
+            #log.debug(f"{universal_block} not in self._block_models")
             if universal_block.extra_blocks:
                 for block_ in universal_block.extra_blocks:
                     version_block += self._translator.block.from_universal(block_)[0]
-
-            self._block_models[universal_block] = self._resource_pack.get_block_model(
-                version_block
-            )
+            #else:
+                #log.debug(f"{universal_block} not in universal_block.extra_blocks")
+            self._block_models[universal_block] = self._resource_pack.get_block_model(version_block)
 
         return self._block_models[universal_block]

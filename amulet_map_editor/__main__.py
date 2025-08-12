@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 def _on_error(e):
     """Code to handle errors"""
     try:
@@ -65,23 +64,39 @@ def _init_log():
             os.remove(path)
     
     log = logging.getLogger()
-    log.setLevel(logging.DEBUG if "amulet-debug" in sys.argv else logging.INFO)
+    
+    debug_mode = "amulet-debug" in sys.argv
+    log.setLevel(logging.DEBUG if debug_mode else logging.INFO)
+
+    if debug_mode:
+        formatter = logging.Formatter(
+            "%(asctime)s.%(msecs)03d | %(levelname)-8s | "
+            "%(filename)s:%(lineno)d | %(funcName)s() | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+    else:
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    file_handler = logging.FileHandler(
-        os.path.join(logs_path, f"amulet_{timestamp}.log"), "w", encoding="utf-8"
-    )
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    )
+
+    # File handler
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    file_handler = logging.FileHandler(os.path.join(logs_path, f"amulet_{timestamp}.log"), "w", encoding="utf-8")
+    file_handler.setFormatter(formatter)
     log.addHandler(file_handler)
 
+    # Console handler
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    console_handler.setFormatter(formatter)
     log.addHandler(console_handler)
 
 def main():
     try:
+        _init_log()
+        log = logging.getLogger(__name__)
+        log.setLevel(logging.DEBUG)
         # Initialise default paths.
         data_dir = platformdirs.user_data_dir("AmuletMapEditor", "AmuletTeam")
         os.environ.setdefault("DATA_DIR", data_dir)
@@ -89,15 +104,19 @@ def main():
         if config_dir == data_dir:
             config_dir = os.path.join(data_dir, "Config")
         os.environ.setdefault("CONFIG_DIR", config_dir)
-        os.environ.setdefault(
-            "CACHE_DIR", platformdirs.user_cache_dir("AmuletMapEditor", "AmuletTeam")
-        )
-        os.environ.setdefault(
-            "LOG_DIR", platformdirs.user_log_dir("AmuletMapEditor", "AmuletTeam")
-        )
+        cache_dir = os.environ.setdefault("CACHE_DIR", platformdirs.user_cache_dir("AmuletMapEditor", "AmuletTeam"))
+        log_dir = os.environ.setdefault("LOG_DIR", platformdirs.user_log_dir("AmuletMapEditor", "AmuletTeam"))
 
-        _init_log()
         from amulet_map_editor.api.framework import AmuletApp
+        log.debug(f"Platform Debug:")
+        log.debug(f"sys.platform == {sys.platform} and wx.VERSION = ({wx.VERSION}):")
+        log.debug(f"    os.environ[PYOPENGL_PLATFORM] = egl")
+        log.debug(f"[amulet_map_editor/__main__.py] Path Checks:")
+        log.debug(f"[data_dir] - {data_dir}")
+        log.debug(f"[config_dir] - {config_dir}")
+        log.debug(f"[cache_dir] - {cache_dir}")
+        log.debug(f"[log_dir] - {log_dir}")
+        log.debug(f"[amulet_map_editor/__main__.py] Paths confirmed.")
 
     except Exception as e:
         _on_error(e)
@@ -107,9 +126,7 @@ def main():
             app.MainLoop()
         except Exception as e:
             log = logging.getLogger(__name__)
-            log.critical(
-                f"Amulet Crashed. Sorry about that. Please report it to a developer if you think this is an issue. \n{traceback.format_exc()}"
-            )
+            log.critical(f"Amulet Crashed. Sorry about that. Please report it to a developer if you think this is an issue. \nCall stack:\n" + "".join(traceback.format_stack(limit=10)))
             input("Press ENTER to continue.")
 
     sys.exit(0)

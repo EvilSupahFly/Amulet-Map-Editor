@@ -93,6 +93,21 @@ class BaseEditCanvas(EventCanvas):
         Set up objects that take a while to set up.
         All code in here must be thread safe and not touch the OpenGL state.
         """
+        def _is_effective_pack(pack):
+            """Return True if pack contains any usable files other than ignored placeholders."""
+            try:
+                if not pack or not getattr(pack, "valid_pack", False):
+                    return False
+                ignore_files = {"readme.txt", ".ds_store", "thumbs.db"}
+                for entry in os.listdir(pack.root_dir):
+                    if entry.lower() not in ignore_files and not entry.startswith("."):
+                        return True
+                log.debug(f"[PACK SKIPPED] {pack.root_dir} is empty or contains only ignored files.")
+                return False
+            except Exception as e:
+                log.warning(f"[PACK CHECK ERROR] Failed to inspect {getattr(pack, 'root_dir', '?')}: {e}")
+                return False
+
         packs = []
         resource_packs_dir = os.path.join(os.environ["DATA_DIR"], "resource_packs")
         user_packs = [
@@ -125,7 +140,7 @@ class BaseEditCanvas(EventCanvas):
             yield 0.5, lang.get("program_3d_edit.canvas.loading_resource_packs")
 
             packs += [
-                pack for pack in user_packs if isinstance(pack, BedrockResourcePack)
+                pack for pack in user_packs if isinstance(pack, BedrockResourcePack) and _is_effective_pack(pack)
             ]
             packs.append(get_bedrock_vanilla_fix())
 
@@ -196,7 +211,7 @@ class BaseEditCanvas(EventCanvas):
                         break
 
             yield 0.5, lang.get("program_3d_edit.canvas.loading_resource_packs")
-            packs += [pack for pack in user_packs if isinstance(pack, JavaResourcePack)]
+            packs += [pack for pack in user_packs if isinstance(pack, JavaResourcePack) and _is_effective_pack(pack)]
             packs.append(get_java_vanilla_fix())
 
             translator = self.world.translation_manager.get_version("java", (999, 0, 0))
